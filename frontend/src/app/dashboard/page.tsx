@@ -24,7 +24,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStatus() {
       try {
-        const res = await fetch('http://localhost:8000/api/scans/status');
+        const res = await fetch('https://vigil-backend.onrender.com/api/scans/status');
         const data = await res.json();
         setSystemStatus(data);
       } catch (err) {
