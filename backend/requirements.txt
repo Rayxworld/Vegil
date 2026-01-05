@@ -6,3 +6,4 @@ gql[aiohttp]
 web3
 requests
 python-dotenv
+python-telegram-bot
