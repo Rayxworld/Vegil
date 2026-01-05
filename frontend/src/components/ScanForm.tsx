@@ -6,7 +6,8 @@ export default function ScanForm() {
   const [result, setResult] = useState('');
 
   const handleScan = async () => {
-    const res = await fetch('http://localhost:8000/api/scans/link', {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vigil-backend.onrender.com';
+    const res = await fetch(`${API_BASE_URL}/api/scans/link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: input }),

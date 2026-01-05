@@ -4,7 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch('http://localhost:8000/api/subscriptions/check', {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vigil-backend.onrender.com';
+    const response = await fetch(`${BACKEND_URL}/api/subscriptions/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
