@@ -3,32 +3,34 @@ import requests
 import base64
 from typing import Dict, List
 import json
+import re
+from urllib.parse import urlparse
 
 class AISecurityService:
     """
-    Primary AI Security Service
-    - Uses OpenRouter for Text/Account analysis (supports many FREE models)
-    - Uses VirusTotal for Link scanning
-    - Implements content truncation to save tokens
+    Enhanced AI Security Service with improved phishing detection
     """
     
     def __init__(self):
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "")
         self.virustotal_api_key = os.getenv("VIRUSTOTAL_API_KEY", "")
         self.openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
-        
-        # Default to a highly capable FREE model
         self.model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
+        self.MAX_EMAIL_CHARS = 2000
         
-        # Limits to stay within free/safe boundaries
-        self.MAX_EMAIL_CHARS = 2000  # Truncate long emails to save tokens
+        # Known brand domains for typosquatting detection
+        self.known_brands = [
+            'paypal', 'google', 'facebook', 'amazon', 'apple', 'microsoft',
+            'netflix', 'instagram', 'twitter', 'linkedin', 'walmart', 'ebay',
+            'chase', 'bankofamerica', 'wellsfargo', 'citibank', 'amex',
+            'coinbase', 'binance', 'metamask', 'opensea'
+        ]
     
     async def scan_email(self, content: str) -> Dict:
         """Analyze emails using OpenRouter AI"""
         if not self.openrouter_api_key:
             return self._heuristic_email_scan(content)
         
-        # Truncate content for token efficiency
         truncated_content = content[:self.MAX_EMAIL_CHARS]
         if len(content) > self.MAX_EMAIL_CHARS:
             truncated_content += "... [Content Truncated for Analysis]"
@@ -57,14 +59,13 @@ Return ONLY a JSON object with:
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
-                "max_tokens": 300 # Limit output tokens
+                "max_tokens": 300
             }
             
             response = requests.post(self.openrouter_url, headers=headers, json=payload, timeout=15)
             
             if response.status_code == 200:
                 ai_text = response.json()['choices'][0]['message']['content']
-                # Try to extract JSON from md if AI wraps it
                 if "```json" in ai_text:
                     ai_text = ai_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in ai_text:
@@ -81,41 +82,54 @@ Return ONLY a JSON object with:
             return self._heuristic_email_scan(content, "AI unavailable, using fallback logic")
 
     async def scan_link(self, url: str) -> Dict:
-        """Analyze URLs using VirusTotal (if key exists) or Logic"""
-        if not self.virustotal_api_key:
-            return self._heuristic_link_scan(url)
+        """Enhanced URL analysis with better phishing detection"""
+        # First check with advanced heuristics
+        heuristic_result = self._enhanced_link_scan(url)
         
-        try:
-            headers = {"x-apikey": self.virustotal_api_key}
-            url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
-            vt_url = f"https://www.virustotal.com/api/v3/urls/{url_id}"
-            
-            res = requests.get(vt_url, headers=headers, timeout=10)
-            
-            if res.status_code == 200:
-                attr = res.json().get("data", {}).get("attributes", {})
-                stats = attr.get("last_analysis_stats", {})
-                malicious = stats.get("malicious", 0)
+        # If heuristics detect high risk, return immediately
+        if heuristic_result['risk_score'] >= 60:
+            return heuristic_result
+        
+        # Otherwise try VirusTotal if available
+        if self.virustotal_api_key:
+            try:
+                headers = {"x-apikey": self.virustotal_api_key}
+                url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
+                vt_url = f"https://www.virustotal.com/api/v3/urls/{url_id}"
                 
-                risk_score = min(malicious * 20, 100)
-                level = "Low"
-                if risk_score > 75: level = "Critical"
-                elif risk_score > 50: level = "High"
-                elif risk_score > 25: level = "Medium"
+                res = requests.get(vt_url, headers=headers, timeout=10)
+                
+                if res.status_code == 200:
+                    attr = res.json().get("data", {}).get("attributes", {})
+                    stats = attr.get("last_analysis_stats", {})
+                    malicious = stats.get("malicious", 0)
+                    
+                    risk_score = min(malicious * 20, 100)
+                    
+                    # Combine with heuristic score
+                    combined_score = max(risk_score, heuristic_result['risk_score'])
+                    
+                    level = "Low"
+                    if combined_score > 75: level = "Critical"
+                    elif combined_score > 50: level = "High"
+                    elif combined_score > 25: level = "Medium"
 
-                return {
-                    "url": url,
-                    "risk_level": level,
-                    "risk_score": risk_score,
-                    "flags": [f"{malicious} vendors flagged as malicious"] if malicious > 0 else [],
-                    "details": attr.get("title", "No specific details") if malicious > 0 else "Safe to proceed",
-                    "source": "VirusTotal Intelligence"
-                }
-            else:
-                # If URL not found, we could submit it, but for speed we'll use fallback
-                return self._heuristic_link_scan(url)
-        except:
-            return self._heuristic_link_scan(url)
+                    all_flags = heuristic_result['flags'].copy()
+                    if malicious > 0:
+                        all_flags.append(f"{malicious} security vendors flagged as malicious")
+
+                    return {
+                        "url": url,
+                        "risk_level": level,
+                        "risk_score": combined_score,
+                        "flags": all_flags,
+                        "details": attr.get("title", heuristic_result['details']),
+                        "source": "VirusTotal + AiGuard Intelligence"
+                    }
+            except Exception as e:
+                print(f"VirusTotal Error: {e}")
+        
+        return heuristic_result
 
     async def assess_x_risk(self, handle: str) -> Dict:
         """Assess X handle risk using OpenRouter"""
@@ -142,35 +156,145 @@ Return ONLY a JSON object with:
             pass
         return self._heuristic_x_scan(handle)
 
-    # --- Fallback Heuristics ---
+    # --- Enhanced Heuristics ---
+
+    def _enhanced_link_scan(self, url: str) -> Dict:
+        """Advanced phishing and malicious URL detection"""
+        score = 0
+        flags = []
+        
+        try:
+            parsed = urlparse(url.lower())
+            domain = parsed.netloc or parsed.path.split('/')[0]
+            
+            # Remove www. prefix for analysis
+            domain = domain.replace('www.', '')
+            
+            # 1. Typosquatting Detection (CRITICAL)
+            for brand in self.known_brands:
+                if brand in domain and domain != f"{brand}.com":
+                    # Check for common substitutions
+                    if self._is_typosquatting(domain, brand):
+                        score += 80
+                        flags.append(f"⚠️ TYPOSQUATTING: Impersonating '{brand}'")
+                        break
+            
+            # 2. Suspicious TLDs
+            suspicious_tlds = ['.xyz', '.tk', '.ml', '.ga', '.cf', '.top', '.work', 
+                              '.click', '.link', '.download', '.zip', '.review']
+            if any(domain.endswith(tld) for tld in suspicious_tlds):
+                score += 30
+                flags.append("Suspicious domain extension")
+            
+            # 3. IP Address instead of domain
+            if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', domain):
+                score += 50
+                flags.append("Using IP address instead of domain name")
+            
+            # 4. Excessive subdomains
+            subdomain_count = domain.count('.')
+            if subdomain_count > 3:
+                score += 25
+                flags.append(f"Suspicious number of subdomains ({subdomain_count})")
+            
+            # 5. URL shorteners (potential masking)
+            shorteners = ['bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'short.link']
+            if any(s in domain for s in shorteners):
+                score += 20
+                flags.append("URL shortener detected (destination hidden)")
+            
+            # 6. Homograph attack (Unicode tricks)
+            if not domain.isascii():
+                score += 60
+                flags.append("Non-ASCII characters (possible homograph attack)")
+            
+            # 7. Suspicious keywords in URL
+            phishing_keywords = ['secure', 'account', 'verify', 'login', 'update', 
+                                'banking', 'confirm', 'suspended', 'locked']
+            for keyword in phishing_keywords:
+                if keyword in url.lower():
+                    score += 15
+                    flags.append(f"Suspicious keyword: '{keyword}'")
+            
+            # 8. Very long domain names (often used in phishing)
+            if len(domain) > 40:
+                score += 20
+                flags.append("Unusually long domain name")
+            
+            # 9. Multiple dashes (common in phishing)
+            if domain.count('-') > 2:
+                score += 15
+                flags.append("Multiple hyphens in domain")
+            
+        except Exception as e:
+            print(f"URL parsing error: {e}")
+        
+        score = min(score, 100)
+        
+        level = "Low"
+        if score > 70: level = "Critical"
+        elif score > 50: level = "High"
+        elif score > 30: level = "Medium"
+        
+        details = "Safe to proceed" if score < 30 else \
+                 "Exercise extreme caution - likely phishing attempt" if score > 70 else \
+                 "Proceed with caution and verify authenticity"
+        
+        return {
+            "url": url,
+            "risk_level": level,
+            "risk_score": score,
+            "flags": flags if flags else ["No suspicious patterns detected"],
+            "details": details,
+            "source": "AiGuard Enhanced Intelligence"
+        }
+
+    def _is_typosquatting(self, domain: str, brand: str) -> bool:
+        """Detect common typosquatting techniques"""
+        # Remove .com, .net, etc. for comparison
+        domain_base = domain.split('.')[0]
+        
+        # Common substitutions
+        substitutions = {
+            'o': '0', 'i': '1', 'l': '1', 'a': '@', 
+            'e': '3', 's': '5', 'g': '9', 'b': '8'
+        }
+        
+        # Check character substitutions
+        for char, substitute in substitutions.items():
+            if brand.replace(char, substitute) == domain_base:
+                return True
+        
+        # Check extra/missing characters
+        if len(domain_base) == len(brand) and \
+           sum(c1 != c2 for c1, c2 in zip(domain_base, brand)) <= 2:
+            return True
+        
+        # Check if brand is substring with additions
+        if brand in domain_base and domain_base != brand:
+            return True
+            
+        return False
 
     def _heuristic_email_scan(self, content: str, reason="Basic Heuristics") -> Dict:
         score = 0
         found = []
         c = content.lower()
-        checks = ["urgent", "verify", "suspend", "bank", "password", "login", "winner", "click here"]
+        checks = ["urgent", "verify", "suspend", "bank", "password", "login", 
+                 "winner", "click here", "act now", "confirm your", "unusual activity"]
         for kw in checks:
             if kw in c:
-                score += 15
+                score += 12
                 found.append(kw)
         
         score = min(score, 100)
+        level = "Critical" if score > 70 else "High" if score > 50 else "Medium" if score > 30 else "Low"
+        
         return {
-            "risk_level": "High" if score > 60 else "Medium" if score > 30 else "Low",
+            "risk_level": level,
             "risk_score": score,
-            "flags": found,
-            "analysis": f"Note: {reason}. Detected suspicious keywords.",
-            "source": "AiGuard Internal Logic"
-        }
-
-    def _heuristic_link_scan(self, url: str) -> Dict:
-        score = 20 if any(x in url.lower() for x in [".xyz", "free", "claim", "secure"]) else 0
-        return {
-            "url": url,
-            "risk_level": "Low" if score == 0 else "Medium",
-            "risk_score": score,
-            "flags": ["Suspicious TLD/Pattern"] if score > 0 else [],
-            "details": "Checking against internal malicious patterns.",
+            "flags": found if found else ["No obvious phishing patterns"],
+            "analysis": f"{reason}. Detected {len(found)} suspicious pattern(s).",
             "source": "AiGuard Internal Logic"
         }
 
