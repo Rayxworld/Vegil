@@ -20,11 +20,12 @@ export default function Dashboard() {
   const [url, setUrl] = useState('');
   const [emailContent, setEmailContent] = useState('');
   const [xHandle, setXHandle] = useState('');
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vigil-backend.onrender.com';
 
   useEffect(() => {
     async function fetchStatus() {
       try {
-        const res = await fetch('https://vigil-backend.onrender.com/api/scans/status');
+        const res = await fetch(`${API_BASE_URL}/api/scans/status`);
         const data = await res.json();
         setSystemStatus(data);
       } catch (err) {
@@ -32,7 +33,7 @@ export default function Dashboard() {
       }
     }
     fetchStatus();
-  }, []);
+  }, [API_BASE_URL]);
 
   const handleScan = async () => {
     setLoading(true);
@@ -53,7 +54,7 @@ export default function Dashboard() {
     }
 
     try {
-      const res = await fetch(`http://localhost:8000/api/scans/${endpoint}`, {
+      const res = await fetch(`${API_BASE_URL}/api/scans/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
