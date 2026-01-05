@@ -23,7 +23,7 @@ class AISecurityService:
             'paypal', 'google', 'facebook', 'amazon', 'apple', 'microsoft',
             'netflix', 'instagram', 'twitter', 'linkedin', 'walmart', 'ebay',
             'chase', 'bankofamerica', 'wellsfargo', 'citibank', 'amex',
-            'coinbase', 'binance', 'metamask', 'opensea'
+            'coinbase', 'binance', 'metamask', 'opensea', 'x'
         ]
     
     async def scan_email(self, content: str) -> Dict:
@@ -167,27 +167,37 @@ Return ONLY a JSON object with:
             parsed = urlparse(url.lower())
             domain = parsed.netloc or parsed.path.split('/')[0]
             
-            # Remove www. prefix for analysis
+            # Remove www. and protocol for clean analysis
             domain = domain.replace('www.', '')
+            
+            # Extract base domain (remove port if present)
+            if ':' in domain:
+                domain = domain.split(':')[0]
+            
+            print(f"DEBUG: Analyzing domain: {domain}")  # Debug line
             
             # 1. Typosquatting Detection (CRITICAL)
             for brand in self.known_brands:
-                if brand in domain and domain != f"{brand}.com":
-                    # Check for common substitutions
-                    if self._is_typosquatting(domain, brand):
-                        score += 80
-                        flags.append(f"⚠️ TYPOSQUATTING: Impersonating '{brand}'")
+                # Check if brand appears in domain
+                domain_parts = domain.split('.')
+                for part in domain_parts:
+                    if self._is_typosquatting(part, brand):
+                        score += 85
+                        flags.append(f"TYPOSQUATTING ALERT: Impersonating '{brand}' brand")
+                        print(f"DEBUG: Typosquatting detected for {brand}")  # Debug
                         break
             
             # 2. Suspicious TLDs
             suspicious_tlds = ['.xyz', '.tk', '.ml', '.ga', '.cf', '.top', '.work', 
-                              '.click', '.link', '.download', '.zip', '.review']
-            if any(domain.endswith(tld) for tld in suspicious_tlds):
-                score += 30
-                flags.append("Suspicious domain extension")
+                              '.click', '.link', '.download', '.zip', '.review', '.loan']
+            for tld in suspicious_tlds:
+                if domain.endswith(tld.replace('.', '')):
+                    score += 35
+                    flags.append(f"High-risk domain extension: {tld}")
+                    break
             
             # 3. IP Address instead of domain
-            if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', domain):
+            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', domain):
                 score += 50
                 flags.append("Using IP address instead of domain name")
             
@@ -206,25 +216,35 @@ Return ONLY a JSON object with:
             # 6. Homograph attack (Unicode tricks)
             if not domain.isascii():
                 score += 60
-                flags.append("Non-ASCII characters (possible homograph attack)")
+                flags.append("Non-ASCII characters detected (possible homograph attack)")
             
-            # 7. Suspicious keywords in URL
+            # 7. Suspicious keywords in full URL
             phishing_keywords = ['secure', 'account', 'verify', 'login', 'update', 
-                                'banking', 'confirm', 'suspended', 'locked']
+                                'banking', 'confirm', 'suspended', 'locked', 'signin']
+            url_lower = url.lower()
             for keyword in phishing_keywords:
-                if keyword in url.lower():
-                    score += 15
+                if keyword in url_lower:
+                    score += 12
                     flags.append(f"Suspicious keyword: '{keyword}'")
             
-            # 8. Very long domain names (often used in phishing)
+            # 8. Very long domain names
             if len(domain) > 40:
                 score += 20
                 flags.append("Unusually long domain name")
             
-            # 9. Multiple dashes (common in phishing)
+            # 9. Multiple hyphens (common in phishing)
             if domain.count('-') > 2:
                 score += 15
                 flags.append("Multiple hyphens in domain")
+            
+            # 10. Mixed numbers and letters (common in typosquatting)
+            if re.search(r'\d', domain) and re.search(r'[a-z]', domain):
+                # Check if it's a known brand with number substitution
+                for brand in self.known_brands:
+                    if brand in domain.replace('1', 'l').replace('0', 'o').replace('3', 'e'):
+                        score += 30
+                        flags.append("Numbers mixed with letters (possible character substitution)")
+                        break
             
         except Exception as e:
             print(f"URL parsing error: {e}")
@@ -232,13 +252,14 @@ Return ONLY a JSON object with:
         score = min(score, 100)
         
         level = "Low"
-        if score > 70: level = "Critical"
-        elif score > 50: level = "High"
-        elif score > 30: level = "Medium"
+        if score >= 70: level = "Critical"
+        elif score >= 50: level = "High"
+        elif score >= 30: level = "Medium"
         
-        details = "Safe to proceed" if score < 30 else \
-                 "Exercise extreme caution - likely phishing attempt" if score > 70 else \
-                 "Proceed with caution and verify authenticity"
+        details = "No major threats detected" if score < 30 else \
+                 "EXTREMELY DANGEROUS - Do not click or enter any information!" if score >= 70 else \
+                 "DANGEROUS - Likely phishing attempt" if score >= 50 else \
+                 "Suspicious patterns detected - Verify before proceeding"
         
         return {
             "url": url,
@@ -249,31 +270,58 @@ Return ONLY a JSON object with:
             "source": "AiGuard Enhanced Intelligence"
         }
 
-    def _is_typosquatting(self, domain: str, brand: str) -> bool:
+    def _is_typosquatting(self, domain_part: str, brand: str) -> bool:
         """Detect common typosquatting techniques"""
-        # Remove .com, .net, etc. for comparison
-        domain_base = domain.split('.')[0]
+        # Exact match is fine (unless domain_part != brand)
+        if domain_part == brand:
+            return False
         
-        # Common substitutions
+        # Common character substitutions
         substitutions = {
-            'o': '0', 'i': '1', 'l': '1', 'a': '@', 
-            'e': '3', 's': '5', 'g': '9', 'b': '8'
+            'l': '1',  # L to 1
+            'i': '1',  # i to 1
+            'o': '0',  # o to 0
+            'a': '@',
+            'e': '3',
+            's': '5',
+            'g': '9',
+            'b': '8'
         }
         
-        # Check character substitutions
-        for char, substitute in substitutions.items():
-            if brand.replace(char, substitute) == domain_base:
+        # Check if domain_part is brand with character substitutions
+        test_domain = domain_part
+        for original, substitute in substitutions.items():
+            test_domain = test_domain.replace(substitute, original)
+        
+        if test_domain == brand:
+            print(f"DEBUG: Character substitution match: {domain_part} -> {brand}")
+            return True
+        
+        # Check reverse (brand with substitutions equals domain)
+        test_brand = brand
+        for original, substitute in substitutions.items():
+            test_brand = test_brand.replace(original, substitute)
+        
+        if test_brand == domain_part:
+            print(f"DEBUG: Reverse substitution match: {brand} -> {domain_part}")
+            return True
+        
+        # Check if brand is contained with extra characters
+        if brand in domain_part and len(domain_part) != len(brand):
+            # But not if it's a legitimate subdomain
+            legitimate_suffixes = ['app', 'mail', 'docs', 'drive', 'pay', 'shop']
+            is_legit = any(domain_part == f"{brand}{suffix}" for suffix in legitimate_suffixes)
+            if not is_legit:
+                print(f"DEBUG: Brand contained with extras: {brand} in {domain_part}")
                 return True
         
-        # Check extra/missing characters
-        if len(domain_base) == len(brand) and \
-           sum(c1 != c2 for c1, c2 in zip(domain_base, brand)) <= 2:
-            return True
+        # Levenshtein distance check (1-2 character difference)
+        if len(domain_part) == len(brand):
+            diff_count = sum(c1 != c2 for c1, c2 in zip(domain_part, brand))
+            if diff_count <= 2 and diff_count > 0:
+                print(f"DEBUG: Similar spelling: {domain_part} vs {brand} ({diff_count} diff)")
+                return True
         
-        # Check if brand is substring with additions
-        if brand in domain_base and domain_base != brand:
-            return True
-            
         return False
 
     def _heuristic_email_scan(self, content: str, reason="Basic Heuristics") -> Dict:
@@ -281,7 +329,8 @@ Return ONLY a JSON object with:
         found = []
         c = content.lower()
         checks = ["urgent", "verify", "suspend", "bank", "password", "login", 
-                 "winner", "click here", "act now", "confirm your", "unusual activity"]
+                 "winner", "click here", "act now", "confirm your", "unusual activity",
+                 "security alert", "account locked", "expire"]
         for kw in checks:
             if kw in c:
                 score += 12
