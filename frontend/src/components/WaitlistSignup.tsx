@@ -81,7 +81,7 @@ export default function WaitlistSignup() {
           Secure a slot on the SheildGuard waitlist
         </h3>
         <p className="text-gray-400 text-sm sm:text-base mt-1">
-          {countData.count.toLocaleString()} of {countData.capacity.toLocaleString()} seats
+          {Math.min(countData.count, countData.capacity).toLocaleString()} of {countData.capacity.toLocaleString()} seats
           claimed. We are capping the first wave at 2,000 operators.
         </p>
       </div>
