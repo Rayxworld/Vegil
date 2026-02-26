@@ -36,3 +36,23 @@ Since the backend uses a local SQLite file (`waitlist.db`), the data will be los
 ## 6. Update Frontend
 Once deployed, Railway will provide a public URL (e.g., `https://your-app.up.railway.app`). Update your frontend `.env.local` or Vercel environment variables:
 `NEXT_PUBLIC_API_URL=https://your-app.up.railway.app`
+
+## 7. Specific Values for your Dashboard
+
+Based on your screenshots, here is exactly what to fill:
+
+### Settings Tab
+- **Root Directory**: `/backend/ts-scan` (You already have this)
+- **Public Networking**: 
+  - **Port**: `8080`
+- **Build Command**: (Leave Empty)
+- **Start Command**: `npm start`
+- **Watch Paths**: `/backend/ts-scan/src/**`
+
+### Variables Tab
+Ensure you have these variables:
+- `PORT`: `8080`
+- `DB_PATH`: `/app/waitlist.db` (This is where the database will reside in the container)
+
+> [!IMPORTANT]
+> Since you are using a SQLite database, it is **CRITICAL** to add a **Volume** in Railway (under the `+ Add` menu) and mount it to `/app`. This ensures your user data isn't deleted every time you push an update. Or you can point `DB_PATH` to the volume path.

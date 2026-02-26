@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import initSqlJs, { Database } from 'sql.js';
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const DB_PATH = path.join(DATA_DIR, 'waitlist.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'waitlist.db');
+const DATA_DIR = path.dirname(DB_PATH);
 
 const WASM_PATH = path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
 

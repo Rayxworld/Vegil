@@ -4,10 +4,11 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "types": ["node"],
     "typeRoots": [
       "../ts-scan/node_modules/@types",
-      "./types"
+      "./node_modules/@types"
     ],
     "baseUrl": ".",
     "paths": {
