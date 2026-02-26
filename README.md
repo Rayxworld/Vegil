@@ -1,6 +1,6 @@
-# AI Security Agent 🛡️
+# SheildGuard AI Security Shield 🛡️
 
-An all-in-one AI-powered security platform that protects your digital assets from phishing, spam, and algorithmic risks. Built with Next.js, FastAPI, and Superfluid streaming payments.
+SheildGuard is an all-in-one AI-powered security platform that protects your digital assets from phishing, spam, and algorithmic risks. Built with Next.js, TypeScript/Express, and Superfluid streaming payments, it also includes a waitlist sign-up for the next-wave X analytics module.
 
 ## Features
 
@@ -14,15 +14,23 @@ An all-in-one AI-powered security platform that protects your digital assets fro
 - Identifies social engineering attempts
 - Keyword-based threat analysis
 
-### 🐦 X Account Risk Assessment
+### 🐦 X Account Risk Assessment (Coming Soon)
 - Monitors account health
 - Detects automated behavior patterns
 - Suspension risk analysis
+- Early access via the SheildGuard waitlist — sign up on the landing page when the module opens.
 
 ### 💰 Superfluid Streaming Payments
 - Subscribe with crypto streaming payments ($0.10/month for testing)
 - Support for multiple chains (Ethereum, BSC, Base, Arbitrum, Sepolia, BSC Testnet)
 - Real-time subscription verification
+
+### 📝 Waitlist
+- The X Account Risk module is arriving soon—use the waitlist form on the landing page to receive a beta invite.
+- The first wave is capped at 2,000 seats; the UI now reports the live count so you can watch availability in real time.
+- Backend submissions persist in `backend/data/waitlist.db` and are handled by the Express/TypeScript server in `backend/ts-scan`.
+- Use `npx ts-node backend/scripts/populate_waitlist.ts` (after installing `better-sqlite3`, `ts-node`, and `@types/node`) to reseed the waitlist with realistic pilot users.
+- A unified TypeScript Express backend lives in `backend/ts-scan`. Run `npm install` there and use `npm run dev` (port 9191) to serve both the scan and waitlist routes with the translated heuristics.
 
 ## Tech Stack
 
@@ -34,11 +42,9 @@ An all-in-one AI-powered security platform that protects your digital assets fro
 - **TypeScript**: Full type safety
 
 ### Backend
-- **Framework**: FastAPI (Python)
-- **AI Service**: Dual-mode system
-  - **Basic Mode**: Heuristic-based detection (works immediately)
-  - **Enhanced Mode**: AI-powered with Google Gemini + VirusTotal (95% accuracy, FREE)
-- **Blockchain**: Superfluid subgraph integration
+- **Framework**: Express with TypeScript
+- **AI Service**: Heuristic-first detection (with optional AI hooks via OpenRouter/VirusTotal)
+- **Database**: `better-sqlite3` + SQLite for waitlist storage
 - **CORS**: Enabled for development
 
 > 💡 **NEW**: Enhanced AI mode with FREE APIs! See `API_SETUP.md` for 5-minute setup.
@@ -47,7 +53,7 @@ An all-in-one AI-powered security platform that protects your digital assets fro
 ## Project Structure
 
 ```
-ai-security-agent/
+sheildguard/
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
@@ -68,15 +74,19 @@ ai-security-agent/
 │   ├── tsconfig.json
 │   └── next.config.ts
 ├── backend/
-│   ├── app/
-│   │   ├── routers/
-│   │   │   ├── scans.py          # Scan endpoints
-│   │   │   └── subscription.py   # Subscription endpoints
-│   │   ├── services/
-│   │   │   ├── ai_service.py     # AI detection logic
-│   │   │   └── superfluid_service.py  # Superfluid integration
-│   │   └── main.py               # FastAPI app
-│   └── requirements.txt
+│   ├── data/
+│   │   ├── waitlist.db
+│   │   └── waitlist.csv
+│   ├── scripts/
+│   │   ├── populate_waitlist.ts
+│   │   └── types/
+│   │       └── better-sqlite3.d.ts
+│   ├── ts-scan/
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── src/
+│   │       └── index.ts
+│   ├── .env.example
 └── TODO.md
 ```
 
@@ -108,31 +118,22 @@ The frontend will be available at `http://localhost:3000`
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
+1. Navigate to the TypeScript server:
 ```bash
-cd backend
+cd backend/ts-scan
 ```
 
-2. Create a virtual environment (recommended):
+2. Install dependencies:
 ```bash
-python -m venv venv
+npm install
 ```
 
-3. Activate the virtual environment:
-- Windows: `venv\Scripts\activate`
-- Mac/Linux: `source venv/bin/activate`
-
-4. Install dependencies:
+3. Start the development server:
 ```bash
-pip install -r requirements.txt
+npm run dev
 ```
 
-5. Run the backend server:
-```bash
-uvicorn app.main:app --reload
-```
-
-The backend will be available at `http://localhost:8000`
+The backend will be available at `http://localhost:9191`
 
 ## Usage
 
@@ -183,19 +184,19 @@ Get your WalletConnect Project ID from [WalletConnect Cloud](https://cloud.walle
 
 ## API Endpoints
 
-### Backend (FastAPI)
+### Backend (Express/TypeScript)
 
 #### Scans
 - `POST /api/scans/link` - Scan a URL for threats
 - `POST /api/scans/email` - Analyze email content
 - `POST /api/scans/x-risk` - Assess X account risk
 
-#### Subscriptions
-- `POST /api/subscriptions/check` - Check subscription status
-- `POST /api/subscriptions/test-subscribe` - Create test subscription
+#### Waitlist
+- `POST /api/waitlist/join` - Add an email to the capped 2,000-person queue
+- `GET /api/waitlist/status` - Read the current waitlist count and capacity
 
 ### Frontend (Next.js API Routes)
-- `POST /api/subscription/check` - Proxy to backend
+- `POST /api/subscription/check` - Proxy to backend (if you keep the Superfluid service)
 - `POST /api/subscription/test-subscribe` - Proxy to backend
 
 ## Development
@@ -244,6 +245,6 @@ MIT License - feel free to use this project for your own purposes.
 ## Support
 For issues or questions, please open an issue on GitHub.
 
----
+ ---
 
-Built with ❤️ using Next.js, FastAPI, and Superfluid
+ Built with ❤️ using Next.js, TypeScript/Express, and Superfluid

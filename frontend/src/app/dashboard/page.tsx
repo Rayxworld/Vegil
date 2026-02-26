@@ -20,7 +20,7 @@ export default function Dashboard() {
   const [url, setUrl] = useState('');
   const [emailContent, setEmailContent] = useState('');
   const [xHandle, setXHandle] = useState('');
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vigil-backend.onrender.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sheildguard-backend.onrender.com';
 
   useEffect(() => {
     async function fetchStatus() {
@@ -132,7 +132,7 @@ export default function Dashboard() {
                         {activeTab === 'email' && 'Deep Content Analysis'}
                         {activeTab === 'x' && 'Social Reputation Score'}
                       </h2>
-                      <p className="text-xs sm:text-sm text-gray-500">Analysis provided by Vigil AI Layer 2</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Analysis provided by SheildGuard AI Layer 2</p>
                     </div>
                   </div>
 
@@ -280,7 +280,7 @@ export default function Dashboard() {
                  Sec-Ops Tip
                </h4>
                <p className="text-xs text-gray-500 leading-relaxed">
-                 Vigil's L2 engine analyzes social entropy and urgency patterns. Even if a link has no malicious payload, it can be flagged for social engineering behavior.
+                 SheildGuard's L2 engine analyzes social entropy and urgency patterns. Even if a link has no malicious payload, it can be flagged for social engineering behavior.
                </p>
             </div>
           </div>

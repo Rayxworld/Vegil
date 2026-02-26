@@ -6,7 +6,7 @@ export default function ScanForm() {
   const [result, setResult] = useState('');
 
   const handleScan = async () => {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vigil-backend.onrender.com';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sheildguard-backend.onrender.com';
     const res = await fetch(`${API_BASE_URL}/api/scans/link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
