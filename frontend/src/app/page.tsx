@@ -37,7 +37,7 @@ const proofPoints = [
   {
     label: 'Days of uptime',
     value: '998',
-    detail: 'across sandy bridge, base, and arbitrum',
+    detail: 'continuously monitoring Solana mainnet',
   },
 ];
 
@@ -212,14 +212,14 @@ export default function Home() {
           />
           <PricingCard
             title="Sentinel"
-            price="12"
+            price="10"
             popular
-            features={['Advanced AI Analysis', 'X-Risk Monitoring (Coming Soon)', 'Priority API Access', 'Email Guard']}
+            features={['Advanced AI Analysis', 'X-Risk Monitoring (Coming Soon)', 'Priority API Access', 'Solana Email Guard']}
           />
           <PricingCard
             title="Guardian"
             price="45"
-            features={['Real-time Stream Alerts', 'Insurance Coverage', 'API For Developers', '24/7 Forensic Support']}
+            features={['Real-time Stream Alerts', 'Insurance Coverage', 'Solana Dev API', '24/7 Forensic Support']}
           />
         </div>
       </section>

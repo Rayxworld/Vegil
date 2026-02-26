@@ -6,9 +6,9 @@ import { Crown, Zap } from 'lucide-react';
 
 // Pricing data
 const PRICING = {
-  PREMIUM_TIER: "12.00",
-  NETWORK_FEE: "0.45",
-  TOTAL: "12.45"
+  PREMIUM_TIER: "10.00",
+  NETWORK_FEE: "0.00",
+  TOTAL: "10.00"
 };
 
 export default function SubscribeButton() {

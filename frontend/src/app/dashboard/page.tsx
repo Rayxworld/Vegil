@@ -36,6 +36,8 @@ export default function Dashboard() {
   }, [API_BASE_URL]);
 
   const handleScan = async () => {
+    if (activeTab === 'x') return;
+    
     setLoading(true);
     setResult(null);
     
@@ -48,9 +50,6 @@ export default function Dashboard() {
     } else if (activeTab === 'email') {
       endpoint = "email";
       body = { content: emailContent };
-    } else {
-      endpoint = "x-risk";
-      body = { handle: xHandle };
     }
 
     try {
@@ -78,7 +77,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-2">
             <h1 className="text-4xl font-extrabold tracking-tight">Security Command Center</h1>
-            <p className="text-gray-400">Manage your digital defense and analyze incoming threats.</p>
+            <p className="text-gray-400">Manage your digital defense and analyze incoming threats on Solana.</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -101,7 +100,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <TabButton active={activeTab === 'link'} onClick={() => setActiveTab('link')} icon={<Globe />} label="Link Filter" />
           <TabButton active={activeTab === 'email'} onClick={() => setActiveTab('email')} icon={<Mail />} label="Email Guard" />
-          <TabButton active={activeTab === 'x'} onClick={() => setActiveTab('x')} icon={<Twitter />} label="X Analysis" />
+          <TabButton active={activeTab === 'x'} onClick={() => setActiveTab('x')} icon={<Twitter />} label="X Analysis (Soon)" />
           <TabButton 
             active={activeTab === 'premium'} 
             onClick={() => setActiveTab('premium')} 
@@ -163,17 +162,16 @@ export default function Dashboard() {
                     )}
 
                     {activeTab === 'x' && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-gray-400 uppercase">X Handle</label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-4 text-gray-500 font-bold">@</span>
-                          <input 
-                            type="text" 
-                            value={xHandle}
-                            onChange={(e) => setXHandle(e.target.value)}
-                            placeholder="username"
-                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl p-4 pl-10 text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
-                          />
+                      <div className="space-y-6 text-center py-12">
+                        <div className="mx-auto w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20 mb-4">
+                          <Twitter className="w-8 h-8 text-blue-400" />
+                        </div>
+                        <h3 className="text-xl font-bold">X Reputation Engine</h3>
+                        <p className="text-gray-400 max-w-sm mx-auto">
+                          Our Solana-integrated social reputation engine is currently undergoing neural calibration. 
+                        </p>
+                        <div className="inline-block px-4 py-2 bg-blue-500/20 rounded-full text-blue-400 text-xs font-black uppercase tracking-widest">
+                          Coming Soon
                         </div>
                       </div>
                     )}
@@ -182,7 +180,7 @@ export default function Dashboard() {
 
                 <button 
                   onClick={handleScan}
-                  disabled={loading}
+                  disabled={loading || activeTab === 'x'}
                   className="w-full mt-10 btn-primary py-5 rounded-2xl font-bold text-lg flex items-center justify-center disabled:opacity-50"
                 >
                   {loading ? (
@@ -190,7 +188,7 @@ export default function Dashboard() {
                   ) : (
                     <Search className="mr-3" />
                   )}
-                  {loading ? 'Initializing Neural Scan...' : 'Execute Security Scan'}
+                  {activeTab === 'x' ? 'Neural Calibration in Progress' : (loading ? 'Initializing Neural Scan...' : 'Execute Security Scan')}
                 </button>
               </div>
             )}
@@ -280,7 +278,7 @@ export default function Dashboard() {
                  Sec-Ops Tip
                </h4>
                <p className="text-xs text-gray-500 leading-relaxed">
-                 SheildGuard's L2 engine analyzes social entropy and urgency patterns. Even if a link has no malicious payload, it can be flagged for social engineering behavior.
+                 SheildGuard's L2 engine analyzes social entropy and urgency patterns on Solana. Even if a link has no malicious payload, it can be flagged for social engineering behavior.
                </p>
             </div>
           </div>
@@ -319,7 +317,7 @@ function PremiumView({ isConnected, walletAddress }: any) {
       
       <div className="max-w-md space-y-4">
         <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase leading-tight">Sentinel Premium</h2>
-        <p className="text-sm sm:text-base text-gray-400">Unlock real-time monitoring, AI-powered forensic reports, and decentralized security vaults.</p>
+        <p className="text-sm sm:text-base text-gray-400">Unlock real-time monitoring, AI-powered forensic reports, and decentralized security vaults on Solana.</p>
       </div>
 
       <div className="w-full max-w-sm space-y-6 pt-4">
