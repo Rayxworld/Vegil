@@ -8,6 +8,11 @@ export default function RootLayout({
 }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      {/* ADD THESE TWO LINES BELOW */}
+      <head>
+        <meta name="ory-verify" content="orynth-4653f87d4dc34ca599e16523bccb4463" />
+      </head>
+      
       <body>
         <Providers>
           <Header />
